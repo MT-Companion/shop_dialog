@@ -116,21 +116,6 @@ shop_dialog.buy = function(name, ShopDialogEntry, amount)
     return true
 end
 
--- The following two functions are inspired by the darwers mod.
--- Original license: MIT, see MISC_LICENSE/drawer.LICENSE
-local function tile_to_img(tile)
-    if type(tile) == "string" then return tile end
-    return tile.name or tile.image
-end
-
-local function def_to_img(def)
-    if def.inventory_image then return def.inventory_image end
-    local top = tile_to_img(def.tiles[1])
-    local left = tile_to_img(def.tiles[3] or def.tiles[1])
-    local right = tile_to_img(def.tiles[5] or def.tiles[3] or def.tiles[1])
-    return minetest.inventorycube(top,left,right)
-end
-
 local function handle_select_btn(i)
     ---@diagnostic disable-next-line: unused-local
     return function(player, ctx)
@@ -198,8 +183,7 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
     -- Left: Shop list buttons (ScrollableVBox)
     local shop_list_gui = {name="svb_list"}
     for i,entry in ipairs(current_dialog.entries) do
-        local def = entry.item:get_definition()
-        local img = def_to_img(def)
+        local itemname = entry.item:get_name()
         local entry_btn_gui = {min_w = 15, h = 1.4} -- Stack
         local max_amount, raw_msg = shop_dialog.get_max_amount(name, entry)
         local msg = nil
@@ -217,9 +201,9 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
             padding = 1.4, align_h = "left",
             label = get_short_description(entry.item) .. "\n$" .. tostring(entry.cost)
         })
-        table.insert(entry_btn_gui, gui.Image {
+        table.insert(entry_btn_gui, gui.ItemImage {
             w = 1, h = 1, 
-            texture_name = img,
+            item_name = itemname,
             padding = 0.2, align_h = "left"
         })
         table.insert(entry_btn_gui, gui.Label {
@@ -240,15 +224,14 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
                 label = S("Invalid item.")
             })
         else
-            local def = entry.item:get_definition()
-            local img = def_to_img(def)
+            local itemname = entry.item:get_name()
             table.insert(shop_details_gui, gui.Label {
                 align_h = "center",
                 label = get_short_description(entry.item)
             })
-            table.insert(shop_details_gui, gui.Image {
+            table.insert(shop_details_gui, gui.ItemImage {
                 w = 5, h = 5, align_h = "center",
-                texture_name = img,
+                item_name = itemname,
             })
             table.insert(shop_details_gui, gui.Spacer {})
             if curr_max_amount <= 0 then
