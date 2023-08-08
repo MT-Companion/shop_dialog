@@ -1,0 +1,10 @@
+{
+    "Lua.diagnostics.globals": [
+        "shop_dialog",
+        "minetest",
+        "flow",
+        "ItemStack",
+        "um_translate_common",
+        "unified_money"
+    ]
+}
