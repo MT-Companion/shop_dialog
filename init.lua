@@ -1,3 +1,24 @@
+-- shop_dialog/init.lua
+-- Formspec-based shop dialog
+--[[
+    Copyright (C) 2023  1F616EMO
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA
+]]
+
 shop_dialog = {}
 local S = minetest.get_translator("shop_dialog")
 
@@ -16,7 +37,7 @@ end
 
 -- Format error message
 local function err(msg)
-    error("[shop_dialog] " .. err,2)
+    error("[shop_dialog] " .. msg,2)
 end
 
 -- Dummy functions as default values
@@ -110,15 +131,16 @@ shop_dialog.buy = function(name, ShopDialogEntry, amount)
     local stack = ItemStack(ShopDialogEntry.item)
     -- Guarenteed space from get_max_amount
     unified_money.del_balance_safe(name,ShopDialogEntry.cost * amount)
-    for i = 1, amount, 1 do
+    for _ = 1, amount, 1 do
         inv:add_item("main", stack)
     end
+    log("action", "Player " .. name .. " brought " .. stack:to_string())
     return true
 end
 
 local function handle_select_btn(i)
     ---@diagnostic disable-next-line: unused-local
-    return function(player, ctx)
+    return function(_, ctx)
         ctx.curr_select = i
         return true
     end
@@ -202,7 +224,7 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
             label = get_short_description(entry.item) .. "\n$" .. tostring(entry.cost)
         })
         table.insert(entry_btn_gui, gui.ItemImage {
-            w = 1, h = 1, 
+            w = 1, h = 1,
             item_name = itemname,
             padding = 0.2, align_h = "left"
         })
@@ -244,8 +266,8 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
                 do
                     table.insert(details_buy_gui, gui.Button {
                         w = 0.7, h = 0.7, align_h = "right", expand = true,
-                        label = "-", 
-                        on_event = function(player, ctx)
+                        label = "-",
+                        on_event = function(_, ctx) -- luacheck: ignore 432
                             if not tonumber(ctx.form.count) then
                                 ctx.form.count = 1
                             end
@@ -261,8 +283,8 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
                     })
                     table.insert(details_buy_gui, gui.Button {
                         w = 0.7, h = 0.7, align_h = "left", expand = true,
-                        label = "+", 
-                        on_event = function(player, ctx)
+                        label = "+",
+                        on_event = function(_, ctx) -- luacheck: ignore 432
                             if not tonumber(ctx.form.count) then
                                 ctx.form.count = 1
                             end
@@ -335,7 +357,8 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
 end)
 
 shop_dialog.show_to = function(name,dialog_id)
-    assert(shop_dialog.registered_dialogs[dialog_id] ~= nil, "[shop_dialog] Attempt to open non-existing dialog " .. dialog_id)
+    assert(shop_dialog.registered_dialogs[dialog_id] ~= nil,
+        "[shop_dialog] Attempt to open non-existing dialog " .. dialog_id)
     local player = minetest.get_player_by_name(name)
     assert(player ~= nil, "[shop_dialog] Attempt to open dialog " .. dialog_id .. " to non-existing player " .. name)
     shop_dialog.flow_gui:show(player,{dialog_id=dialog_id})
@@ -355,35 +378,35 @@ shop_dialog.register_dialog("shop_dialog:example", {
         {
             -- The item to be given
             item = ItemStack("air 10"),
-        
+
             -- Money to buy the item.
             -- This uses the Unified Money system.
             cost = 10,
-        
+
             -- Function returning the maximum allowed number of items to be brought.
             -- This cannot exceed 100, and if exceed, it will fallback to 100.
             -- If 0, the second returned value can be a string explaining the reason.
             -- Default to a dummy function that returns 100.
-            max_amount = function(name) return 100 end,
+            max_amount = function(name) return 100 end, -- luacheck: ignore 212
         },
         {
             item = ItemStack("mapgen_stone"),
             cost = 50,
-            max_amount = function(name) return 200 end, -- should become 100
+            max_amount = function(name) return 200 end, -- luacheck: ignore 212 -- should become 100
         },
         {
             -- The item to be given
             item = ItemStack("ignore 10"),
-        
+
             -- Money to buy the item.
             -- This uses the Unified Money system.
             cost = 10,
-        
+
             -- Function returning the maximum allowed number of items to be brought.
             -- This cannot exceed 100, and if exceed, it will fallback to 100.
             -- If 0, the second returned value can be a string explaining the reason.
             -- Default to a dummy function that returns 100.
-            max_amount = function(name) return 0 end,
+            max_amount = function(name) return 0 end, -- luacheck: ignore 212
         },
     }
 })
@@ -391,7 +414,7 @@ shop_dialog.register_dialog("shop_dialog:example", {
 minetest.register_chatcommand("shop_dialog_example",{
     privs = {server=true},
     description = S("Shop dialog examples"),
-    func = function(name,param)
+    func = function(name, _)
         shop_dialog.show_to(name,"shop_dialog:example")
         return true, S("Dialog shown.")
     end
