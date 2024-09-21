@@ -41,10 +41,10 @@ local function err(msg)
 end
 
 -- Dummy functions as default values
-shop_dialog.func_return_max        = function() return shop_dialog.MAX_ITEM_NUMBER end
-shop_dialog.func_return_zero       = function() return 0 end
-shop_dialog.func_return_true       = function() return true end
-shop_dialog.func_return_false      = function() return false end
+shop_dialog.func_return_max = function() return shop_dialog.MAX_ITEM_NUMBER end
+shop_dialog.func_return_zero = function() return 0 end
+shop_dialog.func_return_true = function() return true end
+shop_dialog.func_return_false = function() return false end
 
 -- Verify ShopDialogEntry
 shop_dialog.verify_ShopDialogEntry = function(obj)
@@ -60,6 +60,9 @@ shop_dialog.verify_ShopDialogEntry = function(obj)
     else
         assert_type(obj.max_amount, "function", "ShopDialogEntry.max_amount must be a function.")
     end
+    if obj.description ~= nil then
+        assert_type(obj.description, "string", "ShopDialogEntry.description must be either string or nil.")
+    end
     if obj.after_buy ~= nil then
         assert_type(obj.after_buy, "function", "ShopDialogEntry.after_buy must be either function or nil.")
     end
@@ -67,7 +70,7 @@ shop_dialog.verify_ShopDialogEntry = function(obj)
 end
 
 -- Verify ShopDialog
-shop_dialog.verify_ShopDialog      = function(obj)
+shop_dialog.verify_ShopDialog = function(obj)
     ---@diagnostic disable-next-line: undefined-field
     obj = table.copy(obj)
     assert_type(obj, "table", "ShopDialog must be a table.")
@@ -88,14 +91,14 @@ shop_dialog.verify_ShopDialog      = function(obj)
 end
 
 -- Register ShopDialog
-shop_dialog.registered_dialogs     = {}
-shop_dialog.register_dialog        = function(name, obj)
+shop_dialog.registered_dialogs = {}
+shop_dialog.register_dialog = function(name, obj)
     obj = shop_dialog.verify_ShopDialog(obj)
     shop_dialog.registered_dialogs[name] = obj
 end
 
 -- Get amount
-shop_dialog.get_max_amount         = function(name, ShopDialogEntry)
+shop_dialog.get_max_amount = function(name, ShopDialogEntry)
     local amount_from_entry, msg = ShopDialogEntry.max_amount(name)
     if amount_from_entry <= 0 then return 0, msg end
     local amount_from_func = math.min(amount_from_entry, shop_dialog.MAX_ITEM_NUMBER)
@@ -119,7 +122,7 @@ shop_dialog.get_max_amount         = function(name, ShopDialogEntry)
 end
 
 -- Actualy buy the item
-shop_dialog.buy                    = function(name, ShopDialogEntry, amount)
+shop_dialog.buy = function(name, ShopDialogEntry, amount)
     if amount <= 0 then return true end
     local max_amount, msg = shop_dialog.get_max_amount(name, ShopDialogEntry)
     if max_amount < amount then
@@ -255,13 +258,21 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
                 w = 5, h = 5, align_h = "center",
                 item_name = itemname,
             })
-            table.insert(shop_details_gui, gui.Spacer {})
+            table.insert(shop_details_gui, gui.Textarea {
+                w = 9, h = 8, align_h = "center",
+                default = entry.description,
+                expand = true,
+            })
             if curr_max_amount <= 0 then
                 table.insert(shop_details_gui, gui.Label {
                     align_h = "center",
                     label = curr_max_msg or S("Sold out")
                 })
             else
+                table.insert(shop_details_gui, gui.Label {
+                    align_h = "center",
+                    label = S("Unit price: $@1", entry.cost),
+                })
                 local details_buy_gui = {} -- HBox
                 do
                     table.insert(details_buy_gui, gui.Button {
@@ -379,6 +390,10 @@ shop_dialog.register_dialog("shop_dialog:example", {
             -- The item to be given
             item = ItemStack("air 10"),
 
+            -- Description of the item
+            -- Default to nothing.
+            description = "Thin air.",
+
             -- Money to buy the item.
             -- This uses the Unified Money system.
             cost = 10,
@@ -397,6 +412,11 @@ shop_dialog.register_dialog("shop_dialog:example", {
         {
             -- The item to be given
             item = ItemStack("ignore 10"),
+
+            -- Description of the item
+            -- Default to nothing.
+            description = "Ig-nore! Nothing here! Lorem ipsum dolor sit amet, consectetur adipiscing elit, " ..
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
 
             -- Money to buy the item.
             -- This uses the Unified Money system.

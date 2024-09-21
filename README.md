@@ -29,6 +29,10 @@ A single entry in a `ShopDialog`.
     -- The item to be given
     item = ItemStack(),
 
+    -- Description of the item
+    -- Default to nothing.
+    description = "",
+
     -- Money to buy the item.
     -- This uses the Unified Money system.
     cost = 10,
