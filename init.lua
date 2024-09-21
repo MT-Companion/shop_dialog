@@ -26,79 +26,79 @@ local S = minetest.get_translator("shop_dialog")
 shop_dialog.MAX_ITEM_NUMBER = 100
 
 -- Log in the format of "[shop_dialog] <msg>"
-local function log(lvl,msg)
-    return minetest.log(lvl,"[shop_dialog] " .. msg)
+local function log(lvl, msg)
+    return minetest.log(lvl, "[shop_dialog] " .. msg)
 end
 
 -- Assert a type of a object
-local function assert_type(obj,typ,err)
+local function assert_type(obj, typ, err)
     assert(type(obj) == typ, "[shop_dialog] " .. err)
 end
 
 -- Format error message
 local function err(msg)
-    error("[shop_dialog] " .. msg,2)
+    error("[shop_dialog] " .. msg, 2)
 end
 
 -- Dummy functions as default values
-shop_dialog.func_return_max   = function() return shop_dialog.MAX_ITEM_NUMBER end
-shop_dialog.func_return_zero  = function() return 0 end
-shop_dialog.func_return_true  = function() return true end
-shop_dialog.func_return_false = function() return false end
+shop_dialog.func_return_max        = function() return shop_dialog.MAX_ITEM_NUMBER end
+shop_dialog.func_return_zero       = function() return 0 end
+shop_dialog.func_return_true       = function() return true end
+shop_dialog.func_return_false      = function() return false end
 
 -- Verify ShopDialogEntry
 shop_dialog.verify_ShopDialogEntry = function(obj)
     ---@diagnostic disable-next-line: undefined-field
     obj = table.copy(obj)
     assert_type(obj, "table", "ShopDialogEntry must be a table.")
-    if not(obj.item and obj.item.get_short_description) then
+    if not (obj.item and obj.item.get_short_description) then
         err("ShopDialogEntry.item must be an ItemStack.")
     end
-    assert_type(obj.cost,"number","ShopDialogEntry.cost must be a number.")
+    assert_type(obj.cost, "number", "ShopDialogEntry.cost must be a number.")
     if obj.max_amount == nil then
         obj.max_amount = shop_dialog.func_return_max
     else
-        assert_type(obj.max_amount,"function","ShopDialogEntry.max_amount must be a function.")
+        assert_type(obj.max_amount, "function", "ShopDialogEntry.max_amount must be a function.")
     end
     if obj.after_buy ~= nil then
-        assert_type(obj.after_buy,"function","ShopDialogEntry.after_buy must be either function or nil.")
+        assert_type(obj.after_buy, "function", "ShopDialogEntry.after_buy must be either function or nil.")
     end
     return obj
 end
 
 -- Verify ShopDialog
-shop_dialog.verify_ShopDialog = function(obj)
+shop_dialog.verify_ShopDialog      = function(obj)
     ---@diagnostic disable-next-line: undefined-field
     obj = table.copy(obj)
     assert_type(obj, "table", "ShopDialog must be a table.")
-    for _,n in ipairs({"title","footnote"}) do
+    for _, n in ipairs({ "title", "footnote" }) do
         local t = type(obj[n])
         if t ~= "string" and t ~= "function" then
             err("ShopDialogEntry." .. n .. " must be either function or string.")
         end
     end
     if obj.after_buy ~= nil then
-        assert_type(obj.after_buy,"function","ShopDialog.after_buy must be either function or nil.")
+        assert_type(obj.after_buy, "function", "ShopDialog.after_buy must be either function or nil.")
     end
-    assert_type(obj.entries,"table","ShopDialog.entries must be a table")
-    for k,v in ipairs(obj.entries) do
+    assert_type(obj.entries, "table", "ShopDialog.entries must be a table")
+    for k, v in ipairs(obj.entries) do
         obj.entries[k] = shop_dialog.verify_ShopDialogEntry(v)
     end
     return obj
 end
 
 -- Register ShopDialog
-shop_dialog.registered_dialogs = {}
-shop_dialog.register_dialog = function(name,obj)
+shop_dialog.registered_dialogs     = {}
+shop_dialog.register_dialog        = function(name, obj)
     obj = shop_dialog.verify_ShopDialog(obj)
     shop_dialog.registered_dialogs[name] = obj
 end
 
 -- Get amount
-shop_dialog.get_max_amount = function(name, ShopDialogEntry)
+shop_dialog.get_max_amount         = function(name, ShopDialogEntry)
     local amount_from_entry, msg = ShopDialogEntry.max_amount(name)
     if amount_from_entry <= 0 then return 0, msg end
-    local amount_from_func = math.min(amount_from_entry,shop_dialog.MAX_ITEM_NUMBER)
+    local amount_from_func = math.min(amount_from_entry, shop_dialog.MAX_ITEM_NUMBER)
     if amount_from_func <= 0 then return 0, "UNKNOWN" end
     local acc_balance = unified_money.get_balance_safe(name)
     if acc_balance < ShopDialogEntry.cost then return 0, "MONEY" end
@@ -111,7 +111,7 @@ shop_dialog.get_max_amount = function(name, ShopDialogEntry)
         if cost > acc_balance then return i - 1, "MONEY" end
         local item = ItemStack(ShopDialogEntry.item)
         item:set_count(item:get_count() * i)
-        if not inv:room_for_item("main",item) then
+        if not inv:room_for_item("main", item) then
             return i - 1, "ROOM_ITEM"
         end
     end
@@ -119,7 +119,7 @@ shop_dialog.get_max_amount = function(name, ShopDialogEntry)
 end
 
 -- Actualy buy the item
-shop_dialog.buy = function(name, ShopDialogEntry, amount)
+shop_dialog.buy                    = function(name, ShopDialogEntry, amount)
     if amount <= 0 then return true end
     local max_amount, msg = shop_dialog.get_max_amount(name, ShopDialogEntry)
     if max_amount < amount then
@@ -130,7 +130,7 @@ shop_dialog.buy = function(name, ShopDialogEntry, amount)
 
     local stack = ItemStack(ShopDialogEntry.item)
     -- Guarenteed space from get_max_amount
-    unified_money.del_balance_safe(name,ShopDialogEntry.cost * amount)
+    unified_money.del_balance_safe(name, ShopDialogEntry.cost * amount)
     for _ = 1, amount, 1 do
         inv:add_item("main", stack)
     end
@@ -161,7 +161,7 @@ local function handle_buy_btn(curr_dialog, curr_select)
             ctx.msg = S("Invalid amount.")
             return true
         end
-        local stat, msg = shop_dialog.buy(name,curr_entry,count)
+        local stat, msg = shop_dialog.buy(name, curr_entry, count)
         if curr_entry.after_buy then
             curr_entry.after_buy(name, count)
         end
@@ -190,7 +190,7 @@ end
 -- Register GUI
 local gui = flow.widgets
 shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
-    assert_type(ctx.dialog_id,"string","[shop_dialog] ctx.dialog_id in shop_dialog.flow_gui must be string")
+    assert_type(ctx.dialog_id, "string", "[shop_dialog] ctx.dialog_id in shop_dialog.flow_gui must be string")
     local current_dialog = shop_dialog.registered_dialogs[ctx.dialog_id]
     assert(current_dialog ~= nil, "[shop_dialog] Dialog specified in ctx.dialog_id does not exist")
     local name = player:get_player_name()
@@ -203,10 +203,10 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
     local curr_max_msg = nil
 
     -- Left: Shop list buttons (ScrollableVBox)
-    local shop_list_gui = {name="svb_list"}
-    for i,entry in ipairs(current_dialog.entries) do
+    local shop_list_gui = { name = "svb_list" }
+    for i, entry in ipairs(current_dialog.entries) do
         local itemname = entry.item:get_name()
-        local entry_btn_gui = {min_w = 15, h = 1.4} -- Stack
+        local entry_btn_gui = { min_w = 15, h = 1.4 } -- Stack
         local max_amount, raw_msg = shop_dialog.get_max_amount(name, entry)
         local msg = nil
         if raw_msg then
@@ -230,15 +230,15 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
         })
         table.insert(entry_btn_gui, gui.Label {
             align_h = "right", align_v = "top", padding = 0.2, expand = true,
-            label = (max_amount <= 0 and ((msg ~= "" and msg) or S("Sold out")) or S("Purchase up to @1",max_amount))
+            label = (max_amount <= 0 and ((msg ~= "" and msg) or S("Sold out")) or S("Purchase up to @1", max_amount))
         })
 
         -- Add it into the list
-        table.insert(shop_list_gui,gui.Stack(entry_btn_gui))
+        table.insert(shop_list_gui, gui.Stack(entry_btn_gui))
     end
 
     -- Right: Details & Buy (VBox)
-    local shop_details_gui = {min_w = 10}
+    local shop_details_gui = { min_w = 10 }
     do
         local entry = current_dialog.entries[ctx.curr_select]
         if not entry then
@@ -337,7 +337,7 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
             }
         },
         -- hr
-        gui.Box{w = 1, h = 0.05, color = "grey", padding = 0},
+        gui.Box { w = 1, h = 0.05, color = "grey", padding = 0 },
         -- Body
         gui.HBox {
             h = 17,
@@ -345,23 +345,23 @@ shop_dialog.flow_gui = flow.make_gui(function(player, ctx)
             gui.Vbox(shop_details_gui)
         },
         -- hr
-        gui.Box{w = 1, h = 0.05, color = "grey", padding = 0},
+        gui.Box { w = 1, h = 0.05, color = "grey", padding = 0 },
         -- bottom
         gui.Label { -- status msg
             label = ctx.msg or S("Ready")
         },
         footnote and gui.Label { -- footnote
             label = footnote,
-        } or gui.Nil{}
+        } or gui.Nil {}
     }
 end)
 
-shop_dialog.show_to = function(name,dialog_id)
+shop_dialog.show_to = function(name, dialog_id)
     assert(shop_dialog.registered_dialogs[dialog_id] ~= nil,
         "[shop_dialog] Attempt to open non-existing dialog " .. dialog_id)
     local player = minetest.get_player_by_name(name)
     assert(player ~= nil, "[shop_dialog] Attempt to open dialog " .. dialog_id .. " to non-existing player " .. name)
-    shop_dialog.flow_gui:show(player,{dialog_id=dialog_id})
+    shop_dialog.flow_gui:show(player, { dialog_id = dialog_id })
 end
 
 -- Examples
@@ -411,13 +411,11 @@ shop_dialog.register_dialog("shop_dialog:example", {
     }
 })
 
-minetest.register_chatcommand("shop_dialog_example",{
-    privs = {server=true},
+minetest.register_chatcommand("shop_dialog_example", {
+    privs = { server = true },
     description = S("Shop dialog examples"),
     func = function(name, _)
-        shop_dialog.show_to(name,"shop_dialog:example")
+        shop_dialog.show_to(name, "shop_dialog:example")
         return true, S("Dialog shown.")
     end
 })
-
-
