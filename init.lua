@@ -76,7 +76,7 @@ shop_dialog.verify_ShopDialog = function(obj)
     assert_type(obj, "table", "ShopDialog must be a table.")
     for _, n in ipairs({ "title", "footnote" }) do
         local t = type(obj[n])
-        if t ~= "string" and t ~= "function" then
+        if t ~= "nil" and t ~= "string" and t ~= "function" then
             err("ShopDialogEntry." .. n .. " must be either function or string.")
         end
     end
